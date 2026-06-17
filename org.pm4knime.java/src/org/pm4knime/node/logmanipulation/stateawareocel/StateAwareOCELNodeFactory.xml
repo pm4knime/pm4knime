@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<knimeNode icon="../category-manipulation.png" type="Manipulator"
+    xmlns="http://knime.org/node/v2.8"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://knime.org/node/v2.10 http://knime.org/node/v2.10.xsd">
+    <name>State-Aware OCEL Enricher</name>
+
+    <shortDescription>
+        Enriches an OCEL-style event-object relation table with object states, state-aware activity labels, and optional state transition events.
+    </shortDescription>
+
+    <fullDescription>
+        <intro>
+            This node implements the event-log enrichment step of State-Aware Object-Centric Process Mining (SA-OCPM).
+            The input is a KNIME table with one row per event-object relation, for example the Combined Event-Object Table
+            produced by the OCEL Reader node. The node appends a configurable state column and a configurable state-aware
+            activity column instead of overwriting the original activity. Optionally, it also inserts explicit state transition
+            rows, for example ST CHANGE Normal to Understock.
+            <br />
+            The state configuration follows the idea of the KNIME Expression node family: users write KNIME Expression Language
+            snippets against the input columns. In contrast to a column-mapping node, this node keeps one expression per state.
+            Rules are evaluated top-down and the first state whose expression evaluates to true is assigned to the row.
+        </intro>
+
+        <tab name="Basic workflow">
+            <option name="1. Prepare an OCEL relation table">
+                Use the Combined Event-Object Table output of the OCEL Reader, or provide an equivalent table with at least
+                an event identifier, an object identifier, a timestamp, and an activity column. The table may contain event
+                attributes, object attributes, relation qualifiers, and object attributes valid at the event timestamp.
+            </option>
+            <option name="2. Select the OCEL columns">
+                Choose the event id, object id, timestamp, and activity columns. These columns are preserved. The generated
+                state and state-aware activity values are appended as additional columns.
+            </option>
+            <option name="3. Add states">
+                Add one row per state. Each state has a user-facing state name and one boolean expression. The expression must
+                return true or false for the current event-object row. Missing boolean results are treated as false.
+            </option>
+            <option name="4. Configure transition events">
+                Enable the transition option if the enriched log should contain explicit state-change rows. The node orders
+                rows per object by timestamp and event id. Whenever the assigned state changes for the same object, a generated
+                transition row is inserted just before the source event by subtracting the configured epsilon from the timestamp.
+            </option>
+        </tab>
+
+        <tab name="State rule semantics">
+            <option name="One expression per state">
+                Each rule describes when a row is in a particular state. For example, an inventory configuration may define
+                Understock, Normal, and Overstock as three separate rules. This is often easier to maintain than a single large
+                CASE expression and mirrors how domain experts describe states.
+            </option>
+            <option name="Top-down priority">
+                Rules are evaluated in the order shown in the table. The first rule whose expression is true wins. Put more
+                specific or exceptional states above general fallback states. If no rule matches, the configured default state
+                is used.
+            </option>
+            <option name="Expression language">
+                Expressions use KNIME Expression Language syntax. Reference columns by name with $[&quot;column name&quot;].
+                The editor supports double-click insertion from the column list. The Open enlarged editor button opens a
+                resizable editor for longer expressions.
+            </option>
+            <option name="Limitations">
+                The expressions are evaluated row-wise. Row index and row id references are supported. Row-offset column access
+                can be used where the KNIME Expression Language supports it, but be aware that offsets refer to the current
+                input-table order, not automatically to the previous row of the same object. COLUMN_* aggregation functions are
+                rejected by this node; precompute aggregate values upstream with GroupBy, Joiner, Window Loop, Lag Column, or
+                the standard Expression node and then reference the resulting columns here. Flow variables are not evaluated
+                directly; convert them to columns upstream if needed.
+            </option>
+        </tab>
+
+        <tab name="Examples">
+            <option name="Inventory: Min-Max state rules">
+                Understock:<br />
+                <tt>$[&quot;object_stock&quot;] &lt; $[&quot;object_safety_stock&quot;]</tt><br />
+                Normal:<br />
+                <tt>$[&quot;object_stock&quot;] &gt;= $[&quot;object_safety_stock&quot;] and $[&quot;object_stock&quot;] &lt;= $[&quot;object_max_stock&quot;]</tt><br />
+                Overstock:<br />
+                <tt>$[&quot;object_stock&quot;] &gt; $[&quot;object_max_stock&quot;]</tt>
+            </option>
+            <option name="Machine monitoring">
+                Down:<br />
+                <tt>contains($[&quot;object_machine_status&quot;], &quot;Down&quot;) or $[&quot;object_uptime_ratio&quot;] &lt; 0.1</tt><br />
+                Idle:<br />
+                <tt>$[&quot;object_machine_status&quot;] = &quot;Idle&quot;</tt><br />
+                Running:<br />
+                <tt>$[&quot;object_machine_status&quot;] = &quot;Running&quot;</tt>
+            </option>
+            <option name="Healthcare triage">
+                Critical:<br />
+                <tt>$[&quot;object_vital_status&quot;] = &quot;Critical&quot; or $[&quot;object_risk_score&quot;] &gt;= 0.8</tt><br />
+                At Risk:<br />
+                <tt>$[&quot;object_risk_score&quot;] &gt;= 0.5 and $[&quot;object_risk_score&quot;] &lt; 0.8</tt><br />
+                Stable:<br />
+                <tt>$[&quot;object_risk_score&quot;] &lt; 0.5</tt>
+            </option>
+            <option name="Resulting activity labels">
+                If the original activity is Goods Receipt and the assigned state is Understock, the state-aware activity column
+                contains Goods Receipt (Understock). If transition events are enabled and the previous state for the same object
+                was Normal, the generated transition activity is ST CHANGE Normal to Understock.
+            </option>
+        </tab>
+
+        <tab name="Using the AI assistant">
+            <option name="Recommended workflow">
+                The syntax is the same KNIME Expression Language used by the standard Expression nodes. A practical workflow is
+                to draft and test a boolean expression in the standard Expression node, where the KNIME AI assistant can help
+                generate expression snippets, and then paste the final boolean expression into a state rule in this node.
+            </option>
+            <option name="Prompting tip">
+                Ask the assistant for one boolean KNIME Expression Language expression at a time. Mention the exact column names,
+                the intended state, and the desired semantics. Always review the generated expression and test it on a small sample
+                before applying it to a full OCEL.
+            </option>
+            <option name="Example prompt">
+                Create a KNIME Expression Language boolean expression for the state Understock. The input columns are
+                object_stock and object_safety_stock. The expression should be true when object_stock is strictly smaller than
+                object_safety_stock.
+            </option>
+        </tab>
+
+        <tab name="Validation and output">
+            <option name="Configuration validation">
+                The node validates that the selected input columns exist, required columns have compatible types, output column
+                names are non-empty and not already present, state names are non-empty and unique, expressions parse correctly,
+                and each state expression returns a boolean-compatible value.
+            </option>
+            <option name="Output columns">
+                The output table contains all original columns plus the configured state column, the configured state-aware
+                activity column, and transition metadata columns: is_state_change_event, state_transition_from,
+                state_transition_to, state_change_source_event_id, and state_change_affected_objects.
+            </option>
+            <option name="Transition coalescing">
+                If coalescing is enabled, simultaneous transition rows with the same generated transition label receive the same
+                generated event id and the affected-object count records how many objects participated. The table still contains
+                one row per affected event-object relation so downstream OCEL-table processing remains straightforward.
+            </option>
+        </tab>
+    </fullDescription>
+
+    <ports>
+        <inPort index="0" name="OCEL Event-Object Relation Table">
+            A combined event-object relation table with event, object, relation, and attribute columns.
+        </inPort>
+        <outPort index="0" name="State-Aware OCEL Table">
+            The input table enriched with object states, state-aware activity labels, and optional state transition rows.
+        </outPort>
+    </ports>
+</knimeNode>

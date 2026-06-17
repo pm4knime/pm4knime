@@ -1,31 +1,35 @@
 [workspace]
-channels = ["knime", "conda-forge"]
-conda-pypi-map = {}
+channels = ["knime/label/nightly", "knime", "conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 
 [tasks]
 
 [dependencies]
-python = "3.*"
+python = "*"
 knime-extension = "*"
-knime-python-base = "5.*"
-knime-python-versions = "5.*"
+knime-python-base = "*"
+knime-python-versions = "5.12.*"
 intervaltree = "*"
 pydotplus = "*"
-graphviz = "*"
-python-graphviz = "*"
 pip = "*"
+
+# NOTE: `graphviz` (conda-forge) was removed because conda-forge's current
+# build pins libgd / libtiff < 4.6, which conflicts with knime-python-versions
+# 5.12 (libtiff 4.7.1). pm4knime emits DOT text and renders via pydotplus
+# (uses any graphviz binary present in PATH); the user is expected to install
+# graphviz at the OS level if they want PNG/SVG rendering. Re-add the conda
+# package once conda-forge ships a graphviz built against libtiff >= 4.7.
 
 [feature.build.dependencies]
 python = "*"
-knime-extension-bundling = "5.*"
+knime-extension-bundling = "5.12.*"
 nodejs = "*"
 
 [feature.debug.dependencies]
 debugpy = "*"
 
 [feature.build.tasks]
-build = { args = [{ "arg" = "dest", "default" = "./local-update-site" }, { "arg" = "update_sites_version", "default" = "latest" }], cmd = "build-python-extension . {{ dest }} --update-sites-version {{ update_sites_version }}"}
+build = { args = [{ "arg" = "dest", "default" = "./local-update-site" }, { "arg" = "update_sites_version", "default" = "5.12" }], cmd = "build-python-extension . {{ dest }} --update-sites-version {{ update_sites_version }}"}
 
 
 [environments]

@@ -269,13 +269,43 @@
 
 		</target>
 
-	<target name="frontend-npm-ci" if="frontend.has.lock" description="npm ci for ui-extension frontends">
+	<target name="frontend-configure-git-https" description="Use HTTPS for GitHub npm dependencies that npm expands to SSH URLs">
+		<!--
+			Some KNIME frontend packages depend on GitHub repositories via npm's
+			github: shorthand. On machines without GitHub SSH keys, npm may expand
+			those dependencies to ssh://git@github.com/... and fail before the
+			frontend can be installed. Configure the local repository to rewrite
+			GitHub SSH URLs to HTTPS. failonerror=false keeps this harmless for
+			non-git checkouts or environments without git on PATH.
+		-->
+		<exec executable="git" dir="${basedir}" failonerror="false">
+		    <arg value="config"/>
+		    <arg value="--global"/>
+		    <arg value="url.https://github.com/.insteadOf"/>
+		    <arg value="ssh://git@github.com/"/>
+		</exec>
+
+		<exec executable="git" dir="${basedir}" failonerror="false">
+		    <arg value="config"/>
+		    <arg value="--global"/>
+		    <arg value="url.https://github.com/.insteadOf"/>
+		    <arg value="git@github.com:"/>
+		</exec>
+		<exec executable="git" dir="${basedir}" failonerror="false">
+		    <arg value="config"/>
+		    <arg value="--global"/>
+		    <arg value="url.https://github.com/knime-oss/v-calendar.git.insteadOf"/>
+		    <arg value="ssh://git@github.com/knime/v-calendar.git"/>
+		</exec>
+	</target>
+
+	<target name="frontend-npm-ci" if="frontend.has.lock" depends="frontend-configure-git-https" description="npm ci for ui-extension frontends">
 		<exec executable="${npm.exec}" dir="${frontend.dir}" failonerror="true">
 			<arg value="ci"/>
 		</exec>
 	</target>
 
-	<target name="frontend-npm-install" unless="frontend.has.lock" description="npm install for ui-extension frontends">
+	<target name="frontend-npm-install" unless="frontend.has.lock" depends="frontend-configure-git-https" description="npm install for ui-extension frontends">
 		<exec executable="${npm.exec}" dir="${frontend.dir}" failonerror="true">
 			<arg value="install"/>
 		</exec>

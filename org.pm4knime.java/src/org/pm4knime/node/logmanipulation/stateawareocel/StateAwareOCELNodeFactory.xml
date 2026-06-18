@@ -54,10 +54,11 @@
                 specific or exceptional states above general fallback states. If no rule matches, the configured default state
                 is used.
             </option>
-            <option name="Expression language">
+            <option name="Expression language and editor">
                 Expressions use KNIME Expression Language syntax. Reference columns by name with $[&quot;column name&quot;].
-                The editor supports double-click insertion from the column list. The Open enlarged editor button opens a
-                resizable editor for longer expressions.
+                The modern editor reuses the same scripting-editor building blocks as the KNIME Expression nodes: a column
+                browser for inserting column references, a searchable function catalog for inserting functions and constants,
+                Monaco-based completion and diagnostics, and an enlarged-dialog mode for longer expressions.
             </option>
             <option name="Limitations">
                 The expressions are evaluated row-wise. Row index and row id references are supported. Row-offset column access
@@ -103,9 +104,10 @@
 
         <tab name="Using the AI assistant">
             <option name="Recommended workflow">
-                The syntax is the same KNIME Expression Language used by the standard Expression nodes. A practical workflow is
-                to draft and test a boolean expression in the standard Expression node, where the KNIME AI assistant can help
-                generate expression snippets, and then paste the final boolean expression into a state rule in this node.
+                The dialog uses the same KNIME Expression Language editor infrastructure as the standard Expression nodes.
+                When the KNIME AI assistant is available in the editor, select the state-rule expression you want to edit,
+                open the AI assistant controls, and ask for exactly one boolean expression for the selected state. You can also
+                prototype an expression in the standard Expression node and paste the final boolean expression into this node.
             </option>
             <option name="Prompting tip">
                 Ask the assistant for one boolean KNIME Expression Language expression at a time. Mention the exact column names,

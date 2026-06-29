@@ -11,6 +11,8 @@ knime-python-base = "*"
 knime-python-versions = "5.12.*"
 intervaltree = "*"
 pydotplus = "*"
+graphviz = "*"
+python-graphviz = "*"
 pip = "*"
 
 # NOTE: `graphviz` (conda-forge) was removed because conda-forge's current

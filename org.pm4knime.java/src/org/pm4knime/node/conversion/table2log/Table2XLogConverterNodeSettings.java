@@ -11,6 +11,12 @@ import org.knime.node.parameters.layout.Layout;
 import org.knime.node.parameters.layout.After;
 import org.knime.node.parameters.layout.Section;
 import org.knime.node.parameters.Widget;
+import org.knime.node.parameters.updates.Effect;
+import org.knime.node.parameters.updates.Effect.EffectType;
+import org.knime.node.parameters.updates.EffectPredicate;
+import org.knime.node.parameters.updates.EffectPredicateProvider;
+import org.knime.node.parameters.updates.ParameterReference;
+import org.knime.node.parameters.updates.ValueReference;
 import org.knime.node.parameters.widget.choices.ChoicesProvider;
 import org.knime.node.parameters.widget.choices.StringChoicesProvider;
 import org.knime.node.parameters.widget.choices.filter.ColumnFilter;
@@ -19,14 +25,33 @@ import org.knime.node.parameters.widget.choices.util.AllColumnsProvider;
 import org.processmining.log.csvimport.config.CSVConversionConfig.CSVEmptyCellHandlingMode;
 import org.processmining.log.csvimport.config.CSVConversionConfig.CSVErrorHandlingMode;
 import org.pm4knime.node.discovery.defaultminer.DefaultTableMinerSettings.StringCellColumnsProvider;
+import org.pm4knime.settingsmodel.SMTable2XLogConfig;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 public final class Table2XLogConverterNodeSettings implements NodeParameters {
+
+	static final String NO_COLUMN_SELECTION = "";
+
+	static boolean isNoColumnSelected(final String value) {
+		return value == null
+				|| value.isBlank()
+				|| SMTable2XLogConfig.CFG_NO_OPTION.equals(value);
+	}
+
+	static final class UseLifeCycleRef implements ParameterReference<Boolean> {
+	}
+
+	static final class IsLifeCycleEnabled implements EffectPredicateProvider {
+		@Override
+		public EffectPredicate init(final PredicateInitializer i) {
+			return i.getBoolean(UseLifeCycleRef.class).isTrue();
+		}
+	}
 
 	public static interface Table2XLogDialogLayout {
 
@@ -50,7 +75,7 @@ public final class Table2XLogConverterNodeSettings implements NodeParameters {
 
 	
 
-	public static final class StringColumnChoicesWithMissing implements StringChoicesProvider {
+	public static final class StringColumnChoices implements StringChoicesProvider {
 
 		@Override
 		public List<String> choices(final NodeParametersInput context) {
@@ -60,14 +85,14 @@ public final class Table2XLogConverterNodeSettings implements NodeParameters {
 			if (specs == null) {
 				return Collections.emptyList();
 			} else {
-				return Stream.concat(specs.stream().filter(s -> s.getType().isCompatible(StringValue.class))
-						.map(DataColumnSpec::getName), Stream.of("MISSING")).collect(Collectors.toList());
+				return specs.stream().filter(s -> s.getType().isCompatible(StringValue.class))
+						.map(DataColumnSpec::getName).collect(Collectors.toList());
 			}
 		}
 	}
 	
 	
-	public static final class TimeColumnChoicesWithMissing implements StringChoicesProvider {
+	public static final class TimeColumnChoices implements StringChoicesProvider {
 		
 		
 		
@@ -83,10 +108,10 @@ public final class Table2XLogConverterNodeSettings implements NodeParameters {
 			if (specObj instanceof DataTableSpec) {
 				DataTableSpec specs = (DataTableSpec) specObj;
 
-				return Stream.concat(specs.stream()
+				return specs.stream()
 						.filter(s -> s.getType().equals(ZonedDateTimeCellFactory.TYPE)
 								|| s.getType().equals(LocalDateTimeCellFactory.TYPE))
-						.map(DataColumnSpec::getName), Stream.of("MISSING")).collect(Collectors.toList());
+						.map(DataColumnSpec::getName).collect(Collectors.toList());
 			} else {
 				System.err.println("Expected a DataTableSpec but received a different type: "
 						+ specObj.getClass().getSimpleName());
@@ -145,15 +170,21 @@ public final class Table2XLogConverterNodeSettings implements NodeParameters {
 	@ChoicesProvider(value = StringCellColumnsProvider.class)
 	String event_class;
 
-	@Widget(title = "Life Cycle", description = "Column to be used for the life cycle attribute in the event log.")
+	@Widget(title = "Use Life Cycle", description = "Enable this option to map a column to the life cycle attribute in the event log.")
 	@Layout(Table2XLogDialogLayout.StandardOptions.class)
-	@ChoicesProvider(value = StringColumnChoicesWithMissing.class)
-	String life_cycle = "MISSING";
+	@ValueReference(UseLifeCycleRef.class)
+	boolean use_life_cycle = false;
 
-	@Widget(title = "Time Stamp", description = "Column to be used for the time stamp attribute in the event log. It should be in format of ZonedDateTime or DateTime; otherwise, an error will be thrown.")
+	@Widget(title = "Life Cycle", description = "Optional column to be used for the life cycle attribute in the event log. Leave empty if no life cycle column should be used.")
 	@Layout(Table2XLogDialogLayout.StandardOptions.class)
-	@ChoicesProvider(value = TimeColumnChoicesWithMissing.class)
-	String time_stamp = "MISSING";
+	@Effect(predicate = IsLifeCycleEnabled.class, type = EffectType.SHOW)
+	@ChoicesProvider(value = StringColumnChoices.class)
+	String life_cycle = NO_COLUMN_SELECTION;
+
+	@Widget(title = "Time Stamp", description = "Column to be used for the time stamp attribute in the event log. It must be a ZonedDateTime or DateTime column.")
+	@Layout(Table2XLogDialogLayout.StandardOptions.class)
+	@ChoicesProvider(value = TimeColumnChoices.class)
+	String time_stamp = NO_COLUMN_SELECTION;
 
 	@Widget(title = "From Table Columns to Event Log Attributes", description = "Select the columns to be used as trace attributes. The remaining columns will be used as event attributes.")
 	@ChoicesProvider(value = AllColumnsProvider.class)

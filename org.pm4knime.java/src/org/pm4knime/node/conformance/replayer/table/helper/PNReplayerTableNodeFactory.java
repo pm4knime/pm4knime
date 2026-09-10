@@ -30,8 +30,7 @@ public class PNReplayerTableNodeFactory extends DefaultNodeFactory {
                     + "model doesn't change.</li>\r\n"
                     + "<li>Model Move: The firing transitions in Petri net have no corresponding event in the trace. "
                     + "During replaying, the model moves forwards but the state of the event log doesn't change.</li>\r\n"
-                    + "</ul>\r\n"
-                    + "For more information: <a href=\"https://ieeexplore.ieee.org/abstract/document/6037560\">link</a>")
+                    + "</ul>")
                 .sinceVersion(2, 0, 0)
                 .ports(p -> p
                     .addInputTable("Event Log", "an event log")
@@ -53,6 +52,10 @@ public class PNReplayerTableNodeFactory extends DefaultNodeFactory {
                             throw new RuntimeException(ex);
                         }
                     }))
+                .addExternalResource(
+                	    "https://doi.org/10.1109/EDOC.2011.12",
+                	    "Conformance Checking Using Cost-Based Fitness Analysis"
+                	)
                 .nodeType(NodeType.Other));
     }
 }

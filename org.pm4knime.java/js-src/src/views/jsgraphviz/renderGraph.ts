@@ -32,6 +32,18 @@ export type GraphPayload = {
   links?: GraphEdge[];
 };
 
+type GraphDrag = {
+  model: any;
+  x: number;
+  y: number;
+};
+
+type MarqueeSelection = {
+  element: SVGRectElement;
+  startX: number;
+  startY: number;
+};
+
 const PADDING_INSIDE_PAPER = 10;
 const MIN_ZOOM_LEVEL = 0.2;
 const MAX_ZOOM_LEVEL = 3;
@@ -147,11 +159,56 @@ function adjustPaperSize(graph: any, paper: any) {
   });
 
   paper.setDimensions(maxX + 100, maxY + 100);
+  fitPaperToContent(paper);
+}
+
+function fitPaperToContent(paper: any) {
+  const graphContainer = document.getElementById("graphContainer");
+
   paper.fitToContent({
     useModelGeometry: true,
     padding: PADDING_INSIDE_PAPER,
     allowNewOrigin: "any",
+    minWidth: graphContainer?.clientWidth ?? 0,
+    minHeight: graphContainer?.clientHeight ?? 0,
   });
+}
+
+function expandPaperToContent(paper: any) {
+  const graphContainer = document.getElementById("graphContainer");
+  if (!graphContainer) {
+    return;
+  }
+
+  const contentBounds = paper.getContentBBox({ useModelGeometry: true });
+  const currentSize = paper.getComputedSize();
+  const leftExpansion = Math.max(0, PADDING_INSIDE_PAPER - contentBounds.x);
+  const topExpansion = Math.max(0, PADDING_INSIDE_PAPER - contentBounds.y);
+
+  if (leftExpansion > 0 || topExpansion > 0) {
+    const translation = paper.translate();
+    paper.translate(
+      translation.tx + leftExpansion,
+      translation.ty + topExpansion,
+    );
+  }
+
+  paper.setDimensions(
+    Math.max(
+      graphContainer.clientWidth,
+      currentSize.width + leftExpansion,
+      contentBounds.x + contentBounds.width + leftExpansion + PADDING_INSIDE_PAPER,
+    ),
+    Math.max(
+      graphContainer.clientHeight,
+      currentSize.height + topExpansion,
+      contentBounds.y + contentBounds.height + topExpansion + PADDING_INSIDE_PAPER,
+    ),
+  );
+
+  // Compensate for an expansion to the left or top so nothing jumps on screen.
+  graphContainer.scrollLeft += leftExpansion;
+  graphContainer.scrollTop += topExpansion;
 }
 
 function simplifyWaypoints(points: Array<{ x: number; y: number }>) {
@@ -195,6 +252,7 @@ function createPaper(nodes: GraphNode[], edges: GraphEdge[]) {
     defaultConnectionPoint: { name: "boundary" },
     cellViewNamespace: joint.shapes,
     model: graph,
+    overflow: true,
   });
 
   paper.freeze();
@@ -202,11 +260,7 @@ function createPaper(nodes: GraphNode[], edges: GraphEdge[]) {
   const zoom = (nextZoomLevel: number) => {
     zoomLevel = Math.max(MIN_ZOOM_LEVEL, Math.min(MAX_ZOOM_LEVEL, nextZoomLevel));
     paper.scale(zoomLevel);
-    paper.fitToContent({
-      useModelGeometry: true,
-      padding: PADDING_INSIDE_PAPER,
-      allowNewOrigin: "any",
-    });
+    fitPaperToContent(paper);
   };
 
   const pn = joint.shapes.pn;
@@ -306,6 +360,11 @@ function createPaper(nodes: GraphNode[], edges: GraphEdge[]) {
       });
     }
 
+    const tooltip = nodeTooltip(node);
+    if (tooltip) {
+      element.set("tooltip", tooltip);
+    }
+
     nodeElements.push(element);
     elements[node.id] = element;
   });
@@ -382,6 +441,8 @@ function createPaper(nodes: GraphNode[], edges: GraphEdge[]) {
   applyAutoLayout();
 
   paper.unfreeze();
+  const clearSelection = addMultiSelection(paper);
+  addElementTooltips(paper, nodeElements);
   adjustPaperSize(graph, paper);
   initialGraphState = graph.toJSON();
   fitGraphToViewport();
@@ -403,8 +464,10 @@ function createPaper(nodes: GraphNode[], edges: GraphEdge[]) {
     });
 
     document.getElementById("reset-button")?.addEventListener("click", () => {
+      clearSelection();
       graph.clear();
       graph.fromJSON(joint.util.cloneDeep(initialGraphState));
+      addElementTooltips(paper, graph.getElements());
       fitGraphToViewport();
     });
 
@@ -422,11 +485,7 @@ function createPaper(nodes: GraphNode[], edges: GraphEdge[]) {
     });
 
     paper.on("element:pointerup link:pointerup", () => {
-      paper.fitToContent({
-        useModelGeometry: true,
-        padding: PADDING_INSIDE_PAPER,
-        allowNewOrigin: "any",
-      });
+      expandPaperToContent(paper);
     });
 
     document.getElementById("download-svg")?.addEventListener("click", () => {
@@ -467,6 +526,19 @@ function createPaper(nodes: GraphNode[], edges: GraphEdge[]) {
     const nextZoomLevel = Math.min(scaleX, scaleY, MAX_AUTO_FIT_ZOOM_LEVEL);
 
     zoom(nextZoomLevel);
+    centerGraphInViewport(graphContainer);
+  }
+
+  function centerGraphInViewport(graphContainer: HTMLElement) {
+    const bbox = graph.getBBox(graph.getElements());
+    const scale = paper.scale();
+    const viewportWidth = graphContainer.clientWidth;
+    const viewportHeight = graphContainer.clientHeight;
+
+    paper.translate(
+      (viewportWidth - bbox.width * scale.sx) / 2 - bbox.x * scale.sx,
+      (viewportHeight - bbox.height * scale.sy) / 2 - bbox.y * scale.sy,
+    );
   }
   
   
@@ -573,18 +645,246 @@ function createPaper(nodes: GraphNode[], edges: GraphEdge[]) {
   }
 }
 
-function operatorSymbol(label: string | undefined) {
+function addMultiSelection(paper: any) {
+  const selectionHighlighterId = "graph-selection";
+  const arrowheadHighlighterId = "graph-selection-arrowhead";
+  const selectedCells = new Set<any>();
+  let drag: GraphDrag | null = null;
+  let marquee: MarqueeSelection | null = null;
+
+  const setSelected = (model: any, selected: boolean) => {
+    if (selected) {
+      selectedCells.add(model);
+    } else {
+      selectedCells.delete(model);
+    }
+
+    const view = paper.findViewByModel(model);
+    if (!view) {
+      return;
+    }
+
+    if (selected) {
+      joint.highlighters.stroke.add(
+        view,
+        model.isLink() ? ".connection" : ".root",
+        selectionHighlighterId,
+        {
+          padding: model.isLink() ? 0 : 6,
+          attrs: {
+            stroke: "#0b74de",
+            "stroke-width": 2,
+            "stroke-linecap": "round",
+            "stroke-linejoin": "round",
+          },
+        },
+      );
+
+      if (model.isLink()) {
+        joint.highlighters.stroke.add(
+          view,
+          ".marker-target",
+          arrowheadHighlighterId,
+          {
+            padding: 2,
+            attrs: {
+              stroke: "#0b74de",
+              "stroke-width": 2,
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+            },
+          },
+        );
+      }
+    } else {
+      joint.highlighters.stroke.remove(view, selectionHighlighterId);
+      joint.highlighters.stroke.remove(view, arrowheadHighlighterId);
+    }
+  };
+
+  const clearSelection = () => {
+    selectedCells.forEach((model) => setSelected(model, false));
+    selectedCells.clear();
+    drag = null;
+  };
+
+  const modifierPressed = (event: MouseEvent) =>
+    event.ctrlKey || event.metaKey || event.shiftKey;
+
+  const startDrag = (view: any, event: MouseEvent, x: number, y: number) => {
+    const model = view.model;
+
+    if (modifierPressed(event)) {
+      setSelected(model, !selectedCells.has(model));
+    } else if (!selectedCells.has(model)) {
+      clearSelection();
+      setSelected(model, true);
+    }
+
+    drag = selectedCells.has(model) ? { model, x, y } : null;
+  };
+
+  const moveSelection = (view: any, _event: MouseEvent, x: number, y: number) => {
+    if (!drag || view.model !== drag.model) {
+      return;
+    }
+
+    const dx = x - drag.x;
+    const dy = y - drag.y;
+    drag.x = x;
+    drag.y = y;
+
+    if (dx === 0 && dy === 0) {
+      return;
+    }
+
+    // JointJS moves the cell under the pointer. Move every other selected
+    // cell by the same delta so nodes and link vertices remain a single group.
+    selectedCells.forEach((model) => {
+      if (model !== drag?.model) {
+        model.translate(dx, dy, { ui: true });
+      }
+    });
+  };
+
+  paper.on("element:pointerdown link:pointerdown", startDrag);
+  paper.on("element:pointermove link:pointermove", moveSelection);
+  paper.on("element:pointerup link:pointerup", () => {
+    drag = null;
+  });
+
+  paper.on("blank:pointerdown", (event: MouseEvent, x: number, y: number) => {
+    if (event.shiftKey) {
+      const element = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      element.classList.add("graph-selection-marquee");
+      element.setAttribute("x", String(x));
+      element.setAttribute("y", String(y));
+      element.setAttribute("width", "0");
+      element.setAttribute("height", "0");
+      paper.viewport.appendChild(element);
+      marquee = { element, startX: x, startY: y };
+      return;
+    }
+
+    if (!modifierPressed(event)) {
+      clearSelection();
+    }
+  });
+
+  paper.on("blank:pointermove", (_event: MouseEvent, x: number, y: number) => {
+    if (!marquee) {
+      return;
+    }
+
+    const area = rectangleBetween(marquee.startX, marquee.startY, x, y);
+    marquee.element.setAttribute("x", String(area.x));
+    marquee.element.setAttribute("y", String(area.y));
+    marquee.element.setAttribute("width", String(area.width));
+    marquee.element.setAttribute("height", String(area.height));
+  });
+
+  paper.on("blank:pointerup", (_event: MouseEvent, x: number, y: number) => {
+    if (!marquee) {
+      return;
+    }
+
+    const area = new joint.g.Rect(
+      rectangleBetween(marquee.startX, marquee.startY, x, y),
+    );
+    marquee.element.remove();
+    marquee = null;
+
+    if (area.width === 0 || area.height === 0) {
+      return;
+    }
+
+    paper.model.getCells().forEach((model: any) => {
+      const view = paper.findViewByModel(model);
+      if (!view) {
+        return;
+      }
+
+      const bounds = model.isLink()
+        ? view.getConnection().bbox()
+        : model.getBBox({ rotate: true });
+      if (area.containsRect(bounds)) {
+        setSelected(model, true);
+      }
+    });
+  });
+
+  return clearSelection;
+}
+
+function rectangleBetween(startX: number, startY: number, endX: number, endY: number) {
+  return {
+    x: Math.min(startX, endX),
+    y: Math.min(startY, endY),
+    width: Math.abs(endX - startX),
+    height: Math.abs(endY - startY),
+  };
+}
+
+function addElementTooltips(paper: any, elements: any[]) {
+  elements.forEach((element) => {
+    const tooltip = element.get?.("tooltip");
+    if (!tooltip) {
+      return;
+    }
+
+    const view = paper.findViewByModel(element);
+    const viewElement = view?.el as SVGElement | undefined;
+    if (!viewElement) {
+      return;
+    }
+
+    Array.from(viewElement.children).forEach((child) => {
+      if (child.localName === "title") {
+        child.remove();
+      }
+    });
+
+    const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    title.textContent = tooltip;
+    viewElement.insertBefore(title, viewElement.firstChild);
+  });
+}
+
+function nodeTooltip(node: GraphNode) {
+  if ((node.type ?? "").toLowerCase() === "operator") {
+    return operatorTooltip(node.label);
+  }
+  return "";
+}
+
+function operatorTooltip(label: string | undefined) {
   if (label === "xlp") {
-    return "⭯";
+    return "Loop operator";
   }
   if (label === "xor") {
-    return "✖";
+    return "Exclusive choice operator";
   }
   if (label === "and") {
-    return "✙";
+    return "Parallel operator";
   }
   if (label === "seq") {
-    return "➜";
+    return "Sequence operator";
+  }
+  return "";
+}
+
+function operatorSymbol(label: string | undefined) {
+  if (label === "xlp") {
+    return "\u2b6f";
+  }
+  if (label === "xor") {
+    return "\u2716";
+  }
+  if (label === "and") {
+    return "\u271A";
+  }
+  if (label === "seq") {
+    return "\u279c";
   }
   return label || "";
 }

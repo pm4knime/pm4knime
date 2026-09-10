@@ -300,6 +300,13 @@ public final class GraphVisualizerModel {
     private static void appendNode(final StringBuilder svg, final LaidOutNode node) {
         final var style = NodeStyle.from(node.node());
 
+        svg.append("<g>");
+        if (!style.tooltip().isBlank()) {
+            svg.append("<title>")
+                .append(escapeXml(style.tooltip()))
+                .append("</title>");
+        }
+
         if (style.isPlace()) {
             final var cx = node.x() + node.width() / 2.0;
             final var cy = node.y() + node.height() / 2.0;
@@ -324,6 +331,7 @@ public final class GraphVisualizerModel {
                     .append(fmt(cy))
                     .append("\" r=\"7\" fill=\"#38761d\"/>");
             }
+            svg.append("</g>");
             return;
         }
 
@@ -355,6 +363,7 @@ public final class GraphVisualizerModel {
                 .append(escapeXml(label))
                 .append("</text>");
         }
+        svg.append("</g>");
     }
 
     private static void appendEdge(final StringBuilder svg, final LaidOutEdge edge, final boolean processTree) {
@@ -481,9 +490,19 @@ public final class GraphVisualizerModel {
         return switch (label) {
             case "xlp" -> "\u2B6F";
             case "xor" -> "\u2716";
-            case "and" -> "\u2719";
+            case "and" -> "\u271A";
             case "seq" -> "\u279C";
             default -> label == null ? "" : label;
+        };
+    }
+
+    private static String operatorTooltip(final String label) {
+        return switch (label) {
+            case "xlp" -> "Loop operator";
+            case "xor" -> "Exclusive choice operator";
+            case "and" -> "Parallel operator";
+            case "seq" -> "Sequence operator";
+            default -> "";
         };
     }
 
@@ -614,26 +633,28 @@ public final class GraphVisualizerModel {
         }
     }
 
-    private record NodeStyle(boolean isPlace, String fill, String stroke, double strokeWidth, String label) {
+    private record NodeStyle(boolean isPlace, String fill, String stroke, double strokeWidth, String label,
+        String tooltip) {
 
         static NodeStyle from(final NodeData node) {
             final var type = node.type().toLowerCase(Locale.ROOT);
             if ("place".equals(type)) {
-                return new NodeStyle(true, "white", "grey", node.fin() ? 4.0 : 2.0, "");
+                return new NodeStyle(true, "white", "grey", node.fin() ? 4.0 : 2.0, "", "");
             }
             if ("transition".equals(type)) {
-                return new NodeStyle(false, "#cfe2f3", "#3f77cf", 2.0, node.label());
+                return new NodeStyle(false, "#cfe2f3", "#3f77cf", 2.0, node.label(), "");
             }
             if ("artificial start".equals(type)) {
-                return new NodeStyle(false, "#c8fcc0", "#167f06", 2.0, node.label());
+                return new NodeStyle(false, "#c8fcc0", "#167f06", 2.0, node.label(), "");
             }
             if ("artificial end".equals(type)) {
-                return new NodeStyle(false, "#fcb6b6", "#c30909", 2.0, node.label());
+                return new NodeStyle(false, "#fcb6b6", "#c30909", 2.0, node.label(), "");
             }
             if ("operator".equals(type)) {
-                return new NodeStyle(false, "#add8e6", "#87ceeb", 2.0, operatorSymbol(node.label()));
+                return new NodeStyle(false, "#add8e6", "#87ceeb", 2.0, operatorSymbol(node.label()),
+                    operatorTooltip(node.label()));
             }
-            return new NodeStyle(false, "#e0e0e0", "#999999", 2.0, node.label());
+            return new NodeStyle(false, "#e0e0e0", "#999999", 2.0, node.label(), "");
         }
     }
 

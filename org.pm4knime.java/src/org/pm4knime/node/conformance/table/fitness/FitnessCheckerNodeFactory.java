@@ -13,8 +13,8 @@ public class FitnessCheckerNodeFactory extends DefaultNodeFactory {
                 .icon("../../category-conformance.png")
                 .shortDescription("Based on the replay result, this node outputs the statistical fitness information.")
                 .fullDescription(
-                    "This node computes the statistical fitness information based on the result of alignment-based "
-                        + "replayer.")
+                    "This node computes the statistical fitness information based on the result of the "
+                        + "Alignment-Based Replayer.")
                 .sinceVersion(2, 0, 0)
                 .ports(p -> p
                     .addInputPort("Replay Result", "replay result", RepResultPortObjectTable.TYPE)

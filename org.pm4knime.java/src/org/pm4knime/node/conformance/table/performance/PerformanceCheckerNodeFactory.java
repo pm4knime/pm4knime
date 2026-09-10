@@ -13,12 +13,10 @@ public class PerformanceCheckerNodeFactory extends DefaultNodeFactory {
                 .icon("../../category-conformance.png")
                 .shortDescription(
                     "Based on the replay result, this node computes the statistical performance information.")
-                .fullDescription("This node computes the statistical precision information based on the result of "
-                    + "alignment-based replayer.\r\n"
-                    + "        Conceptually, the precision of a process model compared to one event log is supposed "
-                    + "to be (1) high when the model \r\n"
-                    + "        allows for few traces not seen in the log; and (2) low when it allows for many traces "
-                    + "not seen in the log.")
+                .fullDescription("This node computes statistical performance information based on the result of "
+                    + "the Alignment-Based Replayer.\r\n"
+                    + "        The output tables report global, transition-level, and place-level performance "
+                    + "statistics such as waiting time, synchronization time, and sojourn time.")
                 .sinceVersion(2, 0, 0)
                 .ports(p -> p
                     .addInputPort("Replay Result", "replay result", RepResultPortObjectTable.TYPE)

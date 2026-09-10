@@ -28,7 +28,6 @@ import org.knime.core.node.port.PortType;
 import org.knime.core.webui.node.dialog.defaultdialog.NodeParametersUtil;
 import org.pm4knime.portobject.XLogPortObject;
 import org.pm4knime.portobject.XLogPortObjectSpec;
-import org.pm4knime.settingsmodel.SMTable2XLogConfig;
 
 
 @SuppressWarnings("restriction")
@@ -107,12 +106,18 @@ public class Table2XLogConverterNodeModel extends NodeModel {
         }
         
     	
-    	String tsName = m_settings.time_stamp;
-    	DataTableSpec spec  = (DataTableSpec) inSpecs[0];
-    	
-    	if(!tsName.equals(SMTable2XLogConfig.CFG_NO_OPTION)&&!spec.getColumnSpec(tsName).getType().equals(LocalDateTimeCellFactory.TYPE) &&
-    			!spec.getColumnSpec(tsName).getType().equals(ZonedDateTimeCellFactory.TYPE))
-    		throw new InvalidSettingsException("The time stamp doesn't have the required format in LocalDateTime or ZonedDateTime");
+        normalizeOptionalColumnSelections();
+        String lifecycleName = optionalLifeCycleColumnName();
+        String tsName = m_settings.time_stamp;
+        DataTableSpec spec  = (DataTableSpec) inSpecs[0];
+
+        if (Table2XLogConverterNodeSettings.isNoColumnSelected(tsName)) {
+            throw new InvalidSettingsException("Please select a Time Stamp column.");
+        }
+        if(spec.getColumnSpec(tsName) == null
+                || (!spec.getColumnSpec(tsName).getType().equals(LocalDateTimeCellFactory.TYPE) &&
+                !spec.getColumnSpec(tsName).getType().equals(ZonedDateTimeCellFactory.TYPE)))
+            throw new InvalidSettingsException("The time stamp doesn't have the required format in LocalDateTime or ZonedDateTime");
     	    	
     	String[] all_columns = spec.getColumnNames();
 		
@@ -126,27 +131,38 @@ public class Table2XLogConverterNodeModel extends NodeModel {
 		        eventList.add(col);
 		    }
 		}
-    	
-    	if(traceList.contains(m_settings.case_id)) 
-    		if(eventList.contains(m_settings.event_class))
-    			if(eventList.contains(m_settings.life_cycle)
-    					|| m_settings.life_cycle.equals(SMTable2XLogConfig.CFG_NO_OPTION))
-    				if(eventList.contains(m_settings.time_stamp) 
-    						|| m_settings.time_stamp.equals(SMTable2XLogConfig.CFG_NO_OPTION))
-    					return new PortObjectSpec[]{new XLogPortObjectSpec()};
-   	
-    	if(!traceList.contains(m_settings.case_id)) 
-    		throw new InvalidSettingsException("Please ensure that Case Identifier is a trace attribute.");
-    	if(!eventList.contains(m_settings.event_class))
-    		throw new InvalidSettingsException("Please ensure that Event Identifier is an event attribute.");
-    	if(!(eventList.contains(m_settings.life_cycle) 
-    			|| m_settings.life_cycle.equals(SMTable2XLogConfig.CFG_NO_OPTION)))
-    		throw new InvalidSettingsException("Please ensure that Life Cycle Identifier is either set to MISSING or is an event attribute.");
-    	if(!(eventList.contains(m_settings.time_stamp) 
-    			|| m_settings.time_stamp.equals(SMTable2XLogConfig.CFG_NO_OPTION)))
-    		throw new InvalidSettingsException("Please ensure that Timestamp Identifier is either set to MISSING or is an event attribute.");
-    	throw new InvalidSettingsException("Default error message");
-    	
+        if(traceList.contains(m_settings.case_id))
+            if(eventList.contains(m_settings.event_class))
+                if(lifecycleName == null || eventList.contains(lifecycleName))
+                    if(eventList.contains(m_settings.time_stamp))
+                        return new PortObjectSpec[]{new XLogPortObjectSpec()};
+
+        if(!traceList.contains(m_settings.case_id))
+            throw new InvalidSettingsException("Please ensure that Case Identifier is a trace attribute.");
+        if(!eventList.contains(m_settings.event_class))
+            throw new InvalidSettingsException("Please ensure that Event Identifier is an event attribute.");
+        if(m_settings.use_life_cycle && Table2XLogConverterNodeSettings.isNoColumnSelected(m_settings.life_cycle))
+            throw new InvalidSettingsException("Please select a Life Cycle column or disable Use Life Cycle.");
+        if(lifecycleName != null && !eventList.contains(lifecycleName))
+            throw new InvalidSettingsException("Please ensure that Life Cycle Identifier is an event attribute.");
+        if(!eventList.contains(m_settings.time_stamp))
+            throw new InvalidSettingsException("Please ensure that Timestamp Identifier is an event attribute.");
+        throw new InvalidSettingsException("Default error message");
+
+    }
+
+    private void normalizeOptionalColumnSelections() {
+        if (m_settings.use_life_cycle && Table2XLogConverterNodeSettings.isNoColumnSelected(m_settings.life_cycle)) {
+            m_settings.life_cycle = Table2XLogConverterNodeSettings.NO_COLUMN_SELECTION;
+        }
+    }
+
+    private String optionalLifeCycleColumnName() {
+        if (!m_settings.use_life_cycle
+                || Table2XLogConverterNodeSettings.isNoColumnSelected(m_settings.life_cycle)) {
+            return null;
+        }
+        return m_settings.life_cycle;
     }
 
     /**
@@ -165,8 +181,12 @@ public class Table2XLogConverterNodeModel extends NodeModel {
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings)
             throws InvalidSettingsException {
-    	m_settings = NodeParametersUtil.loadSettings(settings, m_settingsClass);
-    	
+        m_settings = NodeParametersUtil.loadSettings(settings, m_settingsClass);
+        if (!settings.containsKey("use_life_cycle")) {
+            m_settings.use_life_cycle = !Table2XLogConverterNodeSettings.isNoColumnSelected(m_settings.life_cycle);
+        }
+        normalizeOptionalColumnSelections();
+
     }
 
     /**

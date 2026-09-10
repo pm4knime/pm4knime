@@ -79,8 +79,8 @@ final class XLog2TableConverterNodeModel {
             final DataTableSpec eventSpec = createEventSpec(spec);
             final DataTableSpec caseSpec = createCaseSpec(spec);
 
-            final BufferedDataContainer eventBuf = i.getExecutionContext().createDataContainer(eventSpec);
-            final BufferedDataContainer caseBuf = i.getExecutionContext().createDataContainer(caseSpec);
+            final BufferedDataContainer eventBuf = i.getExecutionContext().createDataContainer(eventSpec, false);
+            final BufferedDataContainer caseBuf = i.getExecutionContext().createDataContainer(caseSpec, false);
 
             FromXLogConverter.convert(logPortObject.getLog(), eventBuf, caseBuf, i.getExecutionContext());
 

@@ -4,15 +4,19 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 
 import javax.swing.JComponent;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
 
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionMonitor;
@@ -61,7 +65,70 @@ public class BpmnPortObject extends AbstractJSONPortObject {
 
 	@Override
 	public String getSummary() {
-		return model_xml;
+		if (model_xml == null || model_xml.isBlank()) {
+			return "Empty BPMN model";
+		}
+		try {
+			final var summary = summarize(model_xml);
+			return "Activities: " + summary.activities()
+					+ ", Gateways: " + summary.gateways()
+					+ ", Events: " + summary.events()
+					+ ", Flows: " + summary.flows();
+		} catch (Exception ex) {
+			return "BPMN model";
+		}
+	}
+
+	private static BpmnSummary summarize(final String xml) throws Exception {
+		final var factory = XMLInputFactory.newFactory();
+		factory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
+		factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
+
+		int activities = 0;
+		int gateways = 0;
+		int events = 0;
+		int flows = 0;
+
+		final var bytes = xml.getBytes(StandardCharsets.UTF_8);
+		final var reader = factory.createXMLStreamReader(new ByteArrayInputStream(bytes));
+		try {
+			while (reader.hasNext()) {
+				if (reader.next() != XMLStreamConstants.START_ELEMENT) {
+					continue;
+				}
+
+				final var localName = reader.getLocalName();
+
+				if (ACTIVITY_ELEMENTS.contains(localName)) {
+					activities++;
+				} else if (localName.endsWith("Gateway")) {
+					gateways++;
+				} else if (localName.endsWith("Event")) {
+					events++;
+				} else if ("sequenceFlow".equals(localName)) {
+					flows++;
+				}
+			}
+		} finally {
+			reader.close();
+		}
+
+		return new BpmnSummary(activities, gateways, events, flows);
+	}
+
+	private static final Set<String> ACTIVITY_ELEMENTS = Set.of(
+			"task",
+			"userTask",
+			"serviceTask",
+			"scriptTask",
+			"businessRuleTask",
+			"manualTask",
+			"sendTask",
+			"receiveTask",
+			"callActivity",
+			"subProcess");
+
+	private record BpmnSummary(int activities, int gateways, int events, int flows) {
 	}
 	
 	@Override
@@ -214,7 +281,6 @@ public class BpmnPortObject extends AbstractJSONPortObject {
 		
 		try {			
 			String xmlOutput = model_xml;
-			System.out.println(model_xml);
 			String key = "xml"; 
 			String key_2 = "layouter"; 
 			result.put(key, Collections.singletonList(xmlOutput));

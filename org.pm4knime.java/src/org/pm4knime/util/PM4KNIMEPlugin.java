@@ -8,6 +8,7 @@ import org.pm4knime.portobject.factories.CausalGraphPortViewFactories;
 import org.pm4knime.portobject.factories.DFGPortViewFactories;
 import org.pm4knime.portobject.factories.HybridPetriNetPortViewFactories;
 import org.pm4knime.portobject.factories.ProcessTreePortViewFactories;
+import org.pm4knime.portobject.factories.AlignmentPortViewFactories;
 
 /**
  * This is the eclipse bundle activator.
@@ -45,6 +46,7 @@ public class PM4KNIMEPlugin extends Plugin {
         DFGPortViewFactories.register();
         HybridPetriNetPortViewFactories.register();
         ProcessTreePortViewFactories.register();
+        AlignmentPortViewFactories.register();
     }
 
     /**

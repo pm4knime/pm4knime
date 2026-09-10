@@ -9,10 +9,11 @@ public class XLog2TableConverterNodeFactory extends DefaultNodeFactory {
     public XLog2TableConverterNodeFactory() {
         super(
             DefaultNode.create()
-                .name("Event Log to Table")
+                .name("Event Log to Table (Legacy)")
                 .icon("../category-conversion.png")
-                .shortDescription("This node converts an event log into a KNIME Data Table.")
-                .fullDescription("This node converts an event log into a KNIME Data Table.")
+                .shortDescription("Deprecated: converts a legacy event-log port object into KNIME tables.")
+                .fullDescription("Deprecated: this node converts a legacy event-log port object into KNIME tables. "
+                    + "For XES files, use the table-based XES Reader directly.")
                 .sinceVersion(2, 0, 0)
                 .ports(p -> p
                     .addInputPort("Event Log", "an event log", XLogPortObject.TYPE)

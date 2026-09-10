@@ -5,7 +5,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: Development Build
 Bundle-SymbolicName: org.pm4knime.java;singleton:=true
 Bundle-Version: 3.0.0.qualifier
-Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-Vendor: Fraunhofer Institute for Applied Information Technology
 Require-Bundle: org.eclipse.ui;bundle-version="[3.201.0,4.0.0)",org.ec
  lipse.core.runtime;bundle-version="[3.20.100,4.0.0)",org.knime.workbe
@@ -19,7 +19,7 @@ Require-Bundle: org.eclipse.ui;bundle-version="[3.201.0,4.0.0)",org.ec
  rg.knime.ext.svg;bundle-version="[5.0.0,6.0.0)",org.knime.core.table;
  bundle-version="[5.0.0,6.0.0)",org.knime.core.ui;bundle-version="[6.0
  .0,7.0.0)",org.knime.python3.types;bundle-version="[5.6.0,6.0.0)"
-Export-Package: src
+Export-Package: org.pm4knime.portobject,org.pm4knime.settingsmodel,org.pm4knime.util
 Bundle-Activator: org.pm4knime.util.PM4KNIMEPlugin
 Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: org.pm4knime.java.jar,lib/AcceptingPetriNet-latest.j
@@ -63,51 +63,51 @@ Bundle-ClassPath: org.pm4knime.java.jar,lib/AcceptingPetriNet-latest.j
  ib/commons-lang3-3.20.0.jar,lib/commons-logging-1.3.5.jar,lib/commons
  -text-1.14.0.jar,lib/core-1.1.2.jar,lib/dec-0.1.2.jar,lib/dictomaton-
  1.2.1.jar,lib/dom4j-2.2.0.jar,lib/failureaccess-1.0.3.jar,lib/flatlaf
- -2.0.jar,lib/freehep-graphics2d-2.4.jar,lib/freehep-graphicsbase-2.4.
- jar,lib/freehep-graphicsio-2.4.jar,lib/freehep-graphicsio-emf-2.4.jar
- ,lib/freehep-graphicsio-java-2.4.jar,lib/freehep-graphicsio-pdf-2.4.j
- ar,lib/freehep-graphicsio-ps-2.4.jar,lib/freehep-graphicsio-svg-2.4.j
- ar,lib/freehep-graphicsio-swf-2.4.jar,lib/freehep-io-2.2.2.jar,lib/gs
- on-2.13.2.jar,lib/guice-5.0.1.jar,lib/high-scale-lib-1.1.4.jar,lib/is
- tack-commons-runtime-3.0.12.jar,lib/jackson-annotations-2.19.2.jar,li
- b/jackson-core-2.19.2.jar,lib/jackson-databind-2.19.2.jar,lib/jakarta
- .activation-1.2.2.jar,lib/jakarta.activation-api-2.1.3.jar,lib/jakart
- a.xml.bind-api-4.0.2.jar,lib/jama-1.0.3.jar,lib/java-cup-11b-2015.03.
- 26.jar,lib/java-cup-11b-20160615.jar,lib/java-cup-11b-runtime-2015.03
- .26.jar,lib/java-cup-runtime-11b-20160615.jar,lib/java-sizeof-0.0.5.j
- ar,lib/javax.activation-1.2.0.jar,lib/javax.activation-api-1.2.0.jar,
- lib/javax.inject-1.jar,lib/jaxb-api-2.3.1.jar,lib/jaxb-runtime-2.3.9.
- jar,lib/jcalendar-1.4.jar,lib/jclipboardhelper-0.1.0.jar,lib/jcommon-
- 1.0.24.jar,lib/jdom2-2.0.6.1.jar,lib/jep-2.4.2.jar,lib/jfilechooser-b
- ookmarks-0.1.6.jar,lib/jfreechart-1.0.19.jar,lib/jgraph-5.13.0.4.jar,
- lib/jlfgr-1_0.jar,lib/jniloader-1.1.jar,lib/joda-time-1.6.jar,lib/jso
- n-20080701.jar,lib/jsr-275-0.9.1.jar,lib/jsr305-3.0.2.jar,lib/jung-al
- gorithms-2.0.jar,lib/jung-api-2.0.jar,lib/jung-graph-impl-2.0.jar,lib
- /jung-io-2.0.jar,lib/jung-visualization-2.0.jar,lib/kxml2-min-2.3.0.j
- ar,lib/lz4-java-1.8.0.jar,lib/mapdb-2.0-beta13.jar,lib/mtj-1.0.4.jar,
- lib/mxparser-1.2.2.jar,lib/native_ref-java-1.1.jar,lib/native_system-
- java-1.1.jar,lib/netlib-java-1.1.jar,lib/netlib-native_ref-linux-armh
- f-1.1-natives.jar,lib/netlib-native_ref-linux-i686-1.1-natives.jar,li
- b/netlib-native_ref-linux-x86_64-1.1-natives.jar,lib/netlib-native_re
- f-osx-x86_64-1.1-natives.jar,lib/netlib-native_ref-win-i686-1.1-nativ
- es.jar,lib/netlib-native_ref-win-x86_64-1.1-natives.jar,lib/netlib-na
- tive_system-linux-armhf-1.1-natives.jar,lib/netlib-native_system-linu
- x-i686-1.1-natives.jar,lib/netlib-native_system-linux-x86_64-1.1-nati
- ves.jar,lib/netlib-native_system-osx-x86_64-1.1-natives.jar,lib/netli
- b-native_system-win-i686-1.1-natives.jar,lib/netlib-native_system-win
- -x86_64-1.1-natives.jar,lib/okio-3.4.0.jar,lib/okio-jvm-3.4.0.jar,lib
- /optics_dbScan-1.0.4.jar,lib/org.eclipse.emf.common-2.7.0.jar,lib/org
- .eclipse.emf.ecore.xmi-2.5.0.v20100521-1846.jar,lib/org.eclipse.uml2.
- common-1.5.0.v201005031530.jar,lib/prefuse-core-1.0.0.jar,lib/protobu
- f-java-3.25.5.jar,lib/pull-parser-2.1.10.jar,lib/relaxngDatatype-2002
- 0414.jar,lib/rhino-1.8.1.jar,lib/rsyntaxtextarea-2.5.8.jar,lib/serial
- izer-2.7.3.jar,lib/simpleEducationalLearningSchemes-1.0.2.jar,lib/sli
- ckerbox-1.0rc1.jar,lib/snappy-0.5.jar,lib/trove4j-3.0.3.jar,lib/txw2-
- 2.3.9.jar,lib/weka-stable-3.8.0.jar,lib/xalan-2.7.3.jar,lib/xercesImp
- l-2.12.2.jar,lib/xml-apis-1.4.01.jar,lib/xml-writer-0.2.jar,lib/xmlpu
- ll-1.1.3.1.jar,lib/xom-1.1.jar,lib/xpp3-1.1.4c.jar,lib/xpp3_min-1.1.4
- c.jar,lib/xsdlib-2022.7.jar,lib/xstream-1.4.21.jar,lib/xz-1.10.jar,li
- b/zstd-jni-1.5.7-4.jar
+ -3.7.1.jar,lib/freehep-graphics2d-2.4.jar,lib/freehep-graphicsbase-2.
+ 4.jar,lib/freehep-graphicsio-2.4.jar,lib/freehep-graphicsio-emf-2.4.j
+ ar,lib/freehep-graphicsio-java-2.4.jar,lib/freehep-graphicsio-pdf-2.4
+ .jar,lib/freehep-graphicsio-ps-2.4.jar,lib/freehep-graphicsio-svg-2.4
+ .jar,lib/freehep-graphicsio-swf-2.4.jar,lib/freehep-io-2.2.2.jar,lib/
+ gson-2.13.2.jar,lib/guice-5.0.1.jar,lib/high-scale-lib-1.1.4.jar,lib/
+ istack-commons-runtime-3.0.12.jar,lib/jackson-annotations-2.19.2.jar,
+ lib/jackson-core-2.19.2.jar,lib/jackson-databind-2.19.2.jar,lib/jakar
+ ta.activation-1.2.2.jar,lib/jakarta.activation-api-2.1.3.jar,lib/jaka
+ rta.xml.bind-api-4.0.2.jar,lib/jama-1.0.3.jar,lib/java-cup-11b-2015.0
+ 3.26.jar,lib/java-cup-11b-20160615.jar,lib/java-cup-11b-runtime-2015.
+ 03.26.jar,lib/java-cup-runtime-11b-20160615.jar,lib/java-sizeof-0.0.5
+ .jar,lib/javax.activation-1.2.0.jar,lib/javax.activation-api-1.2.0.ja
+ r,lib/javax.inject-1.jar,lib/jaxb-api-2.3.1.jar,lib/jaxb-runtime-2.3.
+ 9.jar,lib/jcalendar-1.4.jar,lib/jclipboardhelper-0.1.2.jar,lib/jcommo
+ n-1.0.24.jar,lib/jdom2-2.0.6.1.jar,lib/jep-2.4.2.jar,lib/jfilechooser
+ -bookmarks-0.1.11.jar,lib/jfreechart-1.0.19.jar,lib/jgraph-5.13.0.4.j
+ ar,lib/jlfgr-1_0.jar,lib/jniloader-1.1.jar,lib/joda-time-1.6.jar,lib/
+ json-20080701.jar,lib/jsr-275-0.9.1.jar,lib/jsr305-3.0.2.jar,lib/jung
+ -algorithms-2.0.jar,lib/jung-api-2.0.jar,lib/jung-graph-impl-2.0.jar,
+ lib/jung-io-2.0.jar,lib/jung-visualization-2.0.jar,lib/kxml2-min-2.3.
+ 0.jar,lib/lz4-java-1.8.0.jar,lib/mapdb-2.0-beta13.jar,lib/mtj-1.0.4.j
+ ar,lib/mxparser-1.2.2.jar,lib/native_ref-java-1.1.jar,lib/native_syst
+ em-java-1.1.jar,lib/netlib-java-1.1.jar,lib/netlib-native_ref-linux-a
+ rmhf-1.1-natives.jar,lib/netlib-native_ref-linux-i686-1.1-natives.jar
+ ,lib/netlib-native_ref-linux-x86_64-1.1-natives.jar,lib/netlib-native
+ _ref-osx-x86_64-1.1-natives.jar,lib/netlib-native_ref-win-i686-1.1-na
+ tives.jar,lib/netlib-native_ref-win-x86_64-1.1-natives.jar,lib/netlib
+ -native_system-linux-armhf-1.1-natives.jar,lib/netlib-native_system-l
+ inux-i686-1.1-natives.jar,lib/netlib-native_system-linux-x86_64-1.1-n
+ atives.jar,lib/netlib-native_system-osx-x86_64-1.1-natives.jar,lib/ne
+ tlib-native_system-win-i686-1.1-natives.jar,lib/netlib-native_system-
+ win-x86_64-1.1-natives.jar,lib/okio-3.4.0.jar,lib/okio-jvm-3.4.0.jar,
+ lib/optics_dbScan-1.0.4.jar,lib/org.eclipse.emf.common-2.7.0.jar,lib/
+ org.eclipse.emf.ecore.xmi-2.5.0.v20100521-1846.jar,lib/org.eclipse.um
+ l2.common-1.5.0.v201005031530.jar,lib/prefuse-core-1.0.0.jar,lib/prot
+ obuf-java-3.25.5.jar,lib/pull-parser-2.1.10.jar,lib/relaxngDatatype-2
+ 0020414.jar,lib/rhino-1.8.1.jar,lib/rsyntaxtextarea-2.5.8.jar,lib/ser
+ ializer-2.7.3.jar,lib/simpleEducationalLearningSchemes-1.0.2.jar,lib/
+ slickerbox-1.0rc1.jar,lib/snappy-0.5.jar,lib/trove4j-3.0.3.jar,lib/tx
+ w2-2.3.9.jar,lib/weka-stable-3.8.0.jar,lib/xalan-2.7.3.jar,lib/xerces
+ Impl-2.12.2.jar,lib/xml-writer-0.2.jar,lib/xmlpull-1.1.3.1.jar,lib/xo
+ m-1.1.jar,lib/xpp3-1.1.4c.jar,lib/xpp3_min-1.1.4c.jar,lib/xsdlib-2022
+ .7.jar,lib/xstream-1.4.21.jar,lib/xz-1.10.jar,lib/zstd-jni-1.5.7-4.ja
+ r
 Import-Package: org.knime.core.columnar.access,org.knime.core.table.ac
  cess,org.knime.core.table.schema,org.knime.filehandling.core.connecti
  ons,org.knime.filehandling.core.data.location.variable,org.knime.file

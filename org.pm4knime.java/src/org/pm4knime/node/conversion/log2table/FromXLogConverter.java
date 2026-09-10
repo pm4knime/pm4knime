@@ -4,7 +4,10 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.deckfour.xes.extension.std.XConceptExtension;
@@ -24,7 +27,6 @@ import org.knime.core.data.DataCell;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataType;
-import org.knime.core.data.MissingCell;
 import org.knime.core.data.def.BooleanCell;
 import org.knime.core.data.def.BooleanCell.BooleanCellFactory;
 import org.knime.core.data.def.DefaultRow;
@@ -46,6 +48,8 @@ import org.pm4knime.util.XLogSpecUtil;
  *
  */
 public class FromXLogConverter {
+	private static final int TRACE_PROGRESS_INTERVAL = 1_000;
+
 	final static XLifecycleExtension lfExt = XLifecycleExtension.instance();
 	final static XConceptExtension cpExt=XConceptExtension.instance();
 	final static XTimeExtension timeExt = XTimeExtension.instance();
@@ -78,56 +82,47 @@ public class FromXLogConverter {
 	    int eventColNum = eventSpec.getNumColumns();
 	    int caseColNum  = caseSpec.getNumColumns();
 
-	    int eventCount = 0;
-	    int caseCount  = 0;
+	    long eventCount = 0;
+	    long caseCount  = 0;
+	    int traceCount = 0;
+	    int traceTotal = log.size();
 
-	    // reusable trace-level cells for event table
-	    DataCell[] traceCellsForEvents = new DataCell[eventColNum];
+	    Map<String, Integer> eventColumnIndices = createColumnIndexMap(eventSpec);
+	    Map<String, Integer> caseColumnIndices = createColumnIndexMap(caseSpec);
+	    DataCell missingCell = DataType.getMissingCell();
+
+	    DataCell[] emptyEventCells = new DataCell[eventColNum];
+	    Arrays.fill(emptyEventCells, missingCell);
+
+	    DataCell[] emptyCaseCells = new DataCell[caseColNum];
+	    Arrays.fill(emptyCaseCells, missingCell);
 
 	    for (XTrace trace : log) {
 
 	        exec.checkCanceled();
 
 	        /* ======================================================
-	         * 1) Fill TRACE attributes into event-template row
+	         * 1) Fill TRACE attributes into event-template and case row
 	         * ====================================================== */
-	        // reset trace template
-	        for (int i = 0; i < eventColNum; i++) {
-	            traceCellsForEvents[i] = null;
-	        }
+	        DataCell[] traceCellsForEvents = emptyEventCells.clone();
+	        DataCell[] caseCells = emptyCaseCells.clone();
 
-	        for (String attrKey : trace.getAttributes().keySet()) {
+	        for (Map.Entry<String, XAttribute> attrEntry : trace.getAttributes().entrySet()) {
 
-	            String colName =
-	                    XLogSpecUtil.TRACE_ATTRIBUTE_PREFIX + attrKey;
+	            String colName = XLogSpecUtil.TRACE_ATTRIBUTE_PREFIX + attrEntry.getKey();
+	            Integer eventColIdx = eventColumnIndices.get(colName);
+	            Integer caseColIdx = caseColumnIndices.get(colName);
 
-	            int colIdx = eventSpec.findColumnIndex(colName);
-
-	            if (colIdx >= 0) {
-	                traceCellsForEvents[colIdx] =
-	                        createDataCell(trace.getAttributes().get(attrKey));
-	            }
-	        }
-
-	        /* ======================================================
-	         * 2) Create ONE CASE ROW (trace attributes only)
-	         * ====================================================== */
-	        DataCell[] caseCells = new DataCell[caseColNum];
-
-	        for (int i = 0; i < caseColNum; i++) {
-	            caseCells[i] = new MissingCell("?");
-	        }
-
-	        for (String attrKey : trace.getAttributes().keySet()) {
-
-	            String colName =
-	                    XLogSpecUtil.TRACE_ATTRIBUTE_PREFIX + attrKey;
-
-	            int colIdx = caseSpec.findColumnIndex(colName);
-
-	            if (colIdx >= 0) {
-	                caseCells[colIdx] =
-	                        createDataCell(trace.getAttributes().get(attrKey));
+	            if (eventColIdx != null || caseColIdx != null) {
+	                DataCell cell = createDataCell(attrEntry.getValue());
+	                if (cell != null) {
+	                    if (eventColIdx != null) {
+	                        traceCellsForEvents[eventColIdx] = cell;
+	                    }
+	                    if (caseColIdx != null) {
+	                        caseCells[caseColIdx] = cell;
+	                    }
+	                }
 	            }
 	        }
 
@@ -147,23 +142,18 @@ public class FromXLogConverter {
 	            DataCell[] eventCells = traceCellsForEvents.clone();
 
 	            // fill event attributes
-	            for (String attrKey : event.getAttributes().keySet()) {
+	            for (Map.Entry<String, XAttribute> attrEntry : event.getAttributes().entrySet()) {
 
 	                String colName =
-	                        XLogSpecUtil.EVENT_ATTRIBUTE_PREFIX + attrKey;
+	                        XLogSpecUtil.EVENT_ATTRIBUTE_PREFIX + attrEntry.getKey();
 
-	                int colIdx = eventSpec.findColumnIndex(colName);
+	                Integer colIdx = eventColumnIndices.get(colName);
 
-	                if (colIdx >= 0) {
-	                    eventCells[colIdx] =
-	                            createDataCell(event.getAttributes().get(attrKey));
-	                }
-	            }
-
-	            // fill missing values
-	            for (int i = 0; i < eventColNum; i++) {
-	                if (eventCells[i] == null) {
-	                    eventCells[i] = new MissingCell("?");
+	                if (colIdx != null) {
+	                    DataCell cell = createDataCell(attrEntry.getValue());
+	                    if (cell != null) {
+	                        eventCells[colIdx] = cell;
+	                    }
 	                }
 	            }
 
@@ -172,9 +162,23 @@ public class FromXLogConverter {
 
 	            eventBuf.addRowToTable(eventRow);
 	        }
+
+	        traceCount++;
+	        if (traceTotal > 0 && (traceCount % TRACE_PROGRESS_INTERVAL == 0 || traceCount == traceTotal)) {
+	            exec.setProgress((double) traceCount / traceTotal,
+	                    "Converted " + traceCount + " of " + traceTotal + " traces");
+	        }
 	    }
 	}
-	
+
+	private static Map<String, Integer> createColumnIndexMap(DataTableSpec spec) {
+		Map<String, Integer> columnIndices = new HashMap<>(spec.getNumColumns() * 2);
+		for (int i = 0; i < spec.getNumColumns(); i++) {
+			columnIndices.put(spec.getColumnSpec(i).getName(), i);
+		}
+		return columnIndices;
+	}
+
 	static DataCell createDataCell(XAttribute attr) {
 		
 		if(attr instanceof XAttributeLiteral) {

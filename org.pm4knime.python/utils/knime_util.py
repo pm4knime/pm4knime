@@ -17,11 +17,8 @@ def create_node_description(short_description: str, description: str, references
         s = f"{short_description}\n"
         s += f"{description}\n\n"
         # s += "___\n\n"  # separator line between description and general part
-        if references is not None:
-            s += "The node uses the following related information and function"
-            if len(references) > 1:
-                s += "s"
-            s += ":"
+        if references:
+            s += "External resources:"
             s += "\n\n"
             for key in references:
                 s += f"- [{key}]({references[key]})\n"

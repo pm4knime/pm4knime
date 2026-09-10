@@ -30,7 +30,6 @@ public final class HybridMinerNodeSettings implements NodeParameters {
          GLOBAL;
      }
      @Widget(title = "Place evaluation method", description = "Place evaluation method.")
-     @ValueSwitchWidget
 	 FitnessType type_fitness = FitnessType.GLOBAL;
 
 }

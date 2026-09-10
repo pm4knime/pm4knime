@@ -297,6 +297,12 @@
 		<exclude org="com.google.guava" module="listenablefuture"/>
 		
 		<exclude org="org.xerial" module="sqlite-jdbc"/>
+		
+		<!-- Java 17 already provides SAX/DOM/JAXP via java.xml. -->
+		<exclude org="xml-apis" module="xml-apis"/>
+		<exclude org="xml-apis" module="xml-apis-ext"/>
+		<exclude org="xerces" module="xmlParserAPIs"/>
+		<exclude org="javax.xml" module="jaxp-api"/>
 
     </dependencies>
 </ivy-module>

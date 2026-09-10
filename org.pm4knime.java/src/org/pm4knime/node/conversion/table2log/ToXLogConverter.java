@@ -40,7 +40,6 @@ import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.NodeLogger;
-import org.pm4knime.settingsmodel.SMTable2XLogConfig;
 import org.pm4knime.util.XLogSpecUtil;
 import org.pm4knime.util.XLogUtil;
 import org.processmining.log.csvimport.config.CSVConversionConfig.CSVErrorHandlingMode;
@@ -112,7 +111,8 @@ public class ToXLogConverter {
 		boolean withLifecycle = false; 
 		int  lifecycleIdx = -1;
 //		if(!config.getMLifecycle().getStringValue().equals(SMTable2XLogConfig.CFG_NO_OPTION)) {
-		if(!m_settings.life_cycle.equals(SMTable2XLogConfig.CFG_NO_OPTION)) {
+		if(m_settings.use_life_cycle
+				&& !Table2XLogConverterNodeSettings.isNoColumnSelected(m_settings.life_cycle)) {
 			// exception happens, when eventAttrSet excluses life-cycle column, which one is the optimal choices?
 			// if we choose lifecycle there, then we should keep it into our event attr!! 
 			// only when it is no-available, it can be excluded. But we test it in configuration part.
@@ -122,16 +122,14 @@ public class ToXLogConverter {
 			eventColVisited[lifecycleIdx] =  true;
 		}
 		
-		boolean withTimeStamp = false;
-		
-		//if(!config.getMTimeStamp().getStringValue().equals(SMTable2XLogConfig.CFG_NO_OPTION)) {
-		if(!m_settings.time_stamp.equals(SMTable2XLogConfig.CFG_NO_OPTION)) {
-			withTimeStamp = true;
-			// complete time the time stamp here in default
-			//tsIdx = eventColumns.indexOf(config.getMTimeStamp().getStringValue());
-			tsIdx = eventList.indexOf(m_settings.time_stamp);
-			eventColVisited[tsIdx] =  true;
+		if(Table2XLogConverterNodeSettings.isNoColumnSelected(m_settings.time_stamp)) {
+			throw new IllegalStateException("Time Stamp column is required.");
 		}
+		tsIdx = eventList.indexOf(m_settings.time_stamp);
+		if(tsIdx < 0) {
+			throw new IllegalStateException("Time Stamp column must be an event attribute.");
+		}
+		eventColVisited[tsIdx] =  true;
 		
 		traceColVisited[caseIDIdx] = true;
 		eventColVisited[eventClassIdx] =true;
@@ -187,7 +185,6 @@ public class ToXLogConverter {
 				// String cTime = ((StringCell) row.getCell(eventColIndices[cTimeIdx])).getStringValue();
 				String lifecycle = null ;
 
-				if(withTimeStamp) {
 				Date timeStamp = convertString2Date( row.getCell(eventColIndices[tsIdx]));
 				
 				// here we check the lifecycle transition and assign the values to it!! 
@@ -198,10 +195,6 @@ public class ToXLogConverter {
 					
 				}
 				startEvent(eventClass, timeStamp, lifecycle);
-		}else {
-			startEventWithoutTimeStamp(eventClass,  lifecycle);
-
-		}
 					
 			} catch (ParseException e) {
 				// TODO Auto-generated catch block
@@ -350,27 +343,6 @@ public class ToXLogConverter {
 			assignLifecycleTransition(factory, currentEvent, lifecycle);
 		}
 	}
-	
-	private void startEventWithoutTimeStamp(String eventClass, String lifecycle) {
-		if(errorDetected && m_settings.error_handling.equals(CSVErrorHandlingMode.OMIT_EVENT_ON_ERROR.toString())) {
-			// Include the other events in that trace
-			errorDetected = false;
-		}
-		
-		currentEvent = factory.createEvent();
-		
-		assignName(factory, currentEvent, eventClass);
-		
-//		if(instance!=null)
-//			assignInstance(factory, currentEvent, instance);
-		// just add the time stamp with the corresponding lifecycle
-		if(lifecycle != null) {
-			// find the corresponding conversion for the lifecycle to standard model change!
-			assignLifecycleTransition(factory, currentEvent, lifecycle);
-		
-	}
-	}
-
 	
 	public void endEvent() {
 		if (errorDetected && m_settings.error_handling.equals(CSVErrorHandlingMode.OMIT_EVENT_ON_ERROR.toString())) {

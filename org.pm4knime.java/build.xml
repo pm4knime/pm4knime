@@ -199,6 +199,11 @@
 	            <exclude name="**/*-sources.jar"/>
 	            <exclude name="**/*-source.jar"/>
 	            <exclude name="**/*-src.jar"/>
+	            
+	            <!-- Java XML APIs are provided by the JDK module java.xml -->
+				<exclude name="**/xml-apis-*.jar"/>
+				<exclude name="**/xmlParserAPIs-*.jar"/>
+				<exclude name="**/jaxp-api-*.jar"/>
 
 	            <exclude name="**/*-javadoc.jar"/>
 

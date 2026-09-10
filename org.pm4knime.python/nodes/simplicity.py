@@ -22,7 +22,7 @@ petri_net_port_type = knext.nodes.get_port_type_for_id(
             category="/community/processmining/conformance")
 @knime_util.create_node_description(
     short_description="Evaluate the simplicity of a Petri net.",
-    description="This node evaluates the simplicity of the input Petri net. The criteria used for simplicity is the inverse arc degree (https://pm4py.fit.fraunhofer.de/documentation#item-8-4)."
+    description="This node evaluates the simplicity of the input Petri net. The criterion used for simplicity is the inverse arc degree."
 )
 @knext.input_port(name="Petri Net", description="A Petri Net.", port_type=petri_net_port_type)
 @knext.output_table(name="Metrics Table",

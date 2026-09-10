@@ -9,10 +9,11 @@ public class XesImporterNodeFactory extends DefaultNodeFactory {
     public XesImporterNodeFactory() {
         super(
             DefaultNode.create()
-                .name("XES Reader")
+                .name("XES Reader (Legacy Event Log)")
                 .icon("../../../read.png")
-                .shortDescription("This node imports an event log from an XES file.")
-                .fullDescription("This node imports an event log from an XES file.")
+                .shortDescription("Deprecated: imports an XES file as an event-log port object.")
+                .fullDescription("Deprecated: this node imports an XES file as an event-log port object for legacy "
+                    + "workflows and ProM-based views. Use the table-based XES Reader for large logs.")
                 .sinceVersion(2, 0, 0)
                 .ports(p -> p.addOutputPort("Event Log", "an event log", XLogPortObject.TYPE))
                 .model(m -> m

@@ -22,7 +22,7 @@ petri_net_port_type = knext.nodes.get_port_type_for_id(
             category="/community/processmining/conformance")
 @knime_util.create_node_description(
     short_description="Evaluate the generalization of a Petri net with respect to an event log.",
-    description="This node evaluates the generalization of the input Petri net with respect to the input event log. A model is considered to be general if the elements of the model are visited enough often during replaying the log on the model (https://pm4py.fit.fraunhofer.de/documentation#item-8-3)."
+    description="This node evaluates the generalization of the input Petri net with respect to the input event log. A model is considered to be general if the elements of the model are visited often enough while replaying the log on the model."
 )
 @knext.input_table(name="Event Table", description="An Event Table.")
 @knext.input_port(name="Petri Net", description="A Petri Net.", port_type=petri_net_port_type)
